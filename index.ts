@@ -21,7 +21,11 @@ type Board = [
 type PiecePositionRange = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type PieceType = "p" | "q" | "r" | "n" | "k" | "b";
 type MoveHistory = Array<Move>;
-
+interface Square {
+  x: PiecePositionRange;
+  y: PiecePositionRange;
+  UCI: string;
+}
 interface PiecePosition {
   x: PiecePositionRange;
   y: PiecePositionRange;
@@ -67,3 +71,11 @@ function Chess(): Board {
   ];
   return b;
 }
+
+/*
+piecesOnBoard: {
+  pawns: [{Piece}, ...],
+  rooks: [{Piece}, ...],
+  ...
+}
+ */
