@@ -71,7 +71,12 @@ function Chess(): Board {
   ];
   return b;
 }
-
+function StartGame(): void {}
+function LoadFEN(): void {}
+function LoadUCI(): void {}
+function DisplayLegalMoves(): void {}
+function ShowUCI(): void {}
+function ShowFEN(): void {}
 /*
 piecesOnBoard: {
   pawns: [{Piece}, ...],
