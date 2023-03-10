@@ -21,6 +21,7 @@ type Board = [
 type PiecePositionRange = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type PieceType = "p" | "q" | "r" | "n" | "k" | "b";
 type MoveHistory = Array<Move>;
+type Color = "b" | "w";
 interface Square {
   x: PiecePositionRange;
   y: PiecePositionRange;
@@ -49,6 +50,10 @@ interface Piece {
   white: boolean;
   moveHistory: MoveHistory;
 }
+interface FenError {
+  errorType: string;
+  message: string;
+}
 
 interface GameState {
   lastMove: {
@@ -74,106 +79,83 @@ function Chess(): Board {
   return b;
 }
 function LoadFEN(fen: string): void {}
-function validateFEN(fen) {
-  var errors: Array<object> = [];
+//Internal
+function validateFEN(fen: string): Record<string, any> {
+  var errors: FenError[] = [];
+  const fenElements: string[] = fen.split(" ");
 
-  const regex =
-    /^([rnbqkpRNBQKP1-8]{1,8}\/){7}[rnbqkpRNBQKP1-8]{1,8} [wb-] ([KQkq-]{1,4}) ([a-h][1-8]|-) (\d+) (\d+)$/g;
-  const match = regex.exec(fen);
-  if (!match) {
-    errors.push({ errorType: "format", message: "Invalid FEN string format." });
+  if (fenElements.length !== 6) {
+    errors.push({
+      errorType: "format",
+      message: "The fen string you passed is formatted incorrectly",
+    });
+    return { valid: false, errors };
   } else {
-    const ranks = match[1].split("/");
-    if (ranks.length !== 8) {
-      errors.push({ errorType: "ranks", message: "Invalid number of ranks." });
-    }
+    const boardLayout: string = fenElements[0];
+    const colorTurn: string = fenElements[1];
+    const castlingRights: string = fenElements[2];
+    const enPassantSquare: string = fenElements[3];
+    const halfMoves: string = fenElements[4];
+    const fullMoves: string = fenElements[5];
 
-    const validPieces = [
-      "p",
-      "P",
-      "r",
-      "R",
-      "n",
-      "N",
-      "b",
-      "B",
-      "q",
-      "Q",
-      "k",
-      "K",
-    ];
-    for (let i = 0; i < 8; i++) {
-      const rank = ranks[i];
-      let file = 0;
-      for (let j = 0; j < rank.length; j++) {
-        const char = rank.charAt(j);
-        if (char >= "1" && char <= "8") {
-          file += parseInt(char);
-        } else if (validPieces.includes(char)) {
-          file++;
-        } else {
-          errors.push({
-            errorType: "pieces",
-            message: "Invalid piece or rank.",
-          });
-        }
-      }
-      if (file !== 8) {
+    const boardLayoutArray: string[] = boardLayout.split("/");
+    if (boardLayoutArray.length !== 8) {
+      errors.push({
+        errorType: "FEN String: format",
+        message: "Incorrect number of board rows",
+      });
+    }
+    const rowRegex = /^[rnbqkpRNBQKP1-8]+$/;
+    for (const [index, boardRow] of boardLayoutArray.entries()) {
+      if (!rowRegex.test(boardRow)) {
         errors.push({
-          errorType: "files",
-          message: "Invalid number of files.",
+          errorType: "FEN String: Invalid Piece",
+          message: `Row ${
+            index + 1
+          } of the board in the FEN string has an invalid character`,
         });
       }
     }
-
-    const activeColor = match[2];
-    if (activeColor !== "w" && activeColor !== "b") {
-      errors.push({ errorType: "color", message: "Invalid active color." });
-    }
-
-    const castling = match[3];
-    const validCastling = /^(-|[KQkq]+)$/;
-    if (!validCastling.test(castling)) {
+    if (!(colorTurn === "w" || colorTurn === "b")) {
       errors.push({
-        errorType: "castling",
-        message: "Invalid castling rights.",
+        errorType: "FEN String: Invalid Color",
+        message: "The color in your FEN string is not w or b",
       });
     }
-
-    const enPassant = match[4];
-    if (
-      enPassant !== "-" &&
-      (!/^[a-h][1-8]$/.test(enPassant) ||
-        (activeColor === "w" && enPassant.charAt(1) !== "6") ||
-        (activeColor === "b" && enPassant.charAt(1) !== "3"))
-    ) {
+    const castlingRegex = /-|[kqKQ]/;
+    if (!castlingRegex.test(castlingRights)) {
       errors.push({
-        errorType: "enPassant",
-        message: "Invalid en passant target square.",
+        errorType: "FEN String: Invalid castling rights",
+        message: "The castling rights you have passed is incorrect",
       });
     }
-
-    const halfMoveClock = parseInt(match[5]);
-    if (isNaN(halfMoveClock) || halfMoveClock < 0) {
+    const epRegex = /-|[a-h][36]/;
+    if (!epRegex.test(enPassantSquare)) {
       errors.push({
-        errorType: "halfMoveClock",
-        message: "Invalid half move clock.",
+        errorType: "FEN String: Invalid en passant",
+        message: "The en passant you have passed is incorrect",
       });
     }
-
-    const fullMoveNumber = parseInt(match[6]);
-    if (isNaN(fullMoveNumber) || fullMoveNumber < 1) {
+    if (isNaN(parseInt(halfMoves)) || isNaN(parseInt(fullMoves))) {
       errors.push({
-        errorType: "fullMoveNumber",
-        message: "Invalid full move number.",
+        errorType: "FEN String: Move counter",
+        message:
+          "Invalid halfmove clock or fullmove number component in FEN string",
       });
     }
+    return errors.length === 0
+      ? {
+          valid: true,
+          boardLayout,
+          colorTurn,
+          castlingRights,
+          enPassantSquare,
+          halfMoves,
+          fullMoves,
+        }
+      : { valid: false, errors };
   }
-
-  return errors.length ? errors : true;
 }
-
-validateFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 function LoadUCI(): void {}
 function DisplayLegalMoves(): void {}
