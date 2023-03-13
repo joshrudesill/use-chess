@@ -1,12 +1,12 @@
 type BoardElement = [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string
+  Piece | null,
+  Piece | null,
+  Piece | null,
+  Piece | null,
+  Piece | null,
+  Piece | null,
+  Piece | null,
+  Piece | null
 ];
 type Board = [
   BoardElement,
@@ -45,10 +45,11 @@ interface Move {
 interface Piece {
   position: PiecePosition;
   hasMoved: boolean;
-  stringerrorType: PieceType;
-  numericerrorType: 0 | 1 | 2 | 3 | 4 | 5;
-  white: boolean;
+  stringType: string;
+  numericType: number;
+  color: Color;
   moveHistory: MoveHistory;
+  legalMoves: Array<Square>;
 }
 interface FenError {
   errorType: string;
@@ -65,20 +66,72 @@ interface GameState {
   moveHistory: MoveHistory;
 }
 
+const UCIBoard = [
+  ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
+  ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
+  ["a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6"],
+  ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"],
+  ["a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4"],
+  ["a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3"],
+  ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"],
+  ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"],
+];
+let NonUCIBoard: Board = [
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null],
+];
 function Chess(): Board {
-  let b: Board = [
-    ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"],
-    ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"],
-    ["a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3"],
-    ["a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4"],
-    ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"],
-    ["a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6"],
-    ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
-    ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
+  let p: Board = [
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
   ];
-  return b;
+  return p;
 }
-function LoadFEN(fen: string): void {}
+function LoadFEN(fen: string): void {
+  const validation = validateFEN(fen);
+  if (validation.valid) {
+    parseFENIntoMemory(validation.boardLayout);
+  }
+}
+function parseFENIntoMemory(fen: string): void {
+  const boardRows = fen.split("/");
+  var temp: any[] = [];
+  for (let i = 0; i < 8; i++) {
+    const derivedRow = boardRows[i].split("").flatMap((square) => {
+      if (isNaN(Number(square))) {
+        var p: Piece = {
+          hasMoved: false,
+          stringType: square.toLowerCase(),
+          numericType: parseInt(square),
+          color: square.toUpperCase() === square ? "w" : "b",
+          moveHistory: [],
+          legalMoves: [],
+          position: {
+            x: 0,
+            y: 0,
+            UCI: "a1",
+          },
+        };
+      } else {
+        return new Array(Number(square)).fill(null);
+      }
+    });
+    temp.push(derivedRow);
+  }
+  console.log(temp);
+}
 //Internal
 function validateFEN(fen: string): Record<string, any> {
   var errors: FenError[] = [];

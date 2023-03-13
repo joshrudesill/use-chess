@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "tsc": "^2.0.4"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  },
+  "name": "use-chess",
+  "description": "Under development - will be an npm package",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshrudesill/use-chess.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joshrudesill/use-chess/issues"
+  },
+  "homepage": "https://github.com/joshrudesill/use-chess#readme"
+}
