@@ -28,8 +28,9 @@ interface Square {
   UCI: string;
 }
 interface PiecePosition {
-  x: PiecePositionRange;
-  y: PiecePositionRange;
+  //investigate how to use piecepostiionrange here
+  x: number;
+  y: number;
   UCI: string;
 }
 
@@ -109,6 +110,7 @@ function parseFENIntoMemory(fen: string): void {
   const boardRows = fen.split("/");
   var temp: any[] = [];
   for (let i = 0; i < 8; i++) {
+    var rowIndex = 0;
     const derivedRow = boardRows[i].split("").flatMap((square) => {
       if (isNaN(Number(square))) {
         var p: Piece = {
@@ -119,18 +121,26 @@ function parseFENIntoMemory(fen: string): void {
           moveHistory: [],
           legalMoves: [],
           position: {
-            x: 0,
-            y: 0,
-            UCI: "a1",
+            x: 7 - rowIndex,
+            y: 7 - i,
+            UCI: UCIBoard[7 - i][7 - rowIndex],
           },
         };
+        rowIndex += 1;
+        return p;
       } else {
+        rowIndex += Number(square);
         return new Array(Number(square)).fill(null);
       }
     });
     temp.push(derivedRow);
   }
-  console.log(temp);
+  //move to copy as created
+  for (let i = 0; i < temp.length; i++) {
+    for (let j = 0; j < temp.length; j++) {
+      NonUCIBoard[7 - i][j] = temp[7 - i][j];
+    }
+  }
 }
 //Internal
 function validateFEN(fen: string): Record<string, any> {

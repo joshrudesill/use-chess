@@ -40,16 +40,42 @@ function LoadFEN(fen) {
 function parseFENIntoMemory(fen) {
   const boardRows = fen.split("/");
   var temp = [];
+  console.time("l");
   for (let i = 0; i < 8; i++) {
-    const derivedRow = boardRows[i]
-      .split("")
-      .flatMap((square) =>
-        isNaN(Number(square)) ? square : new Array(Number(square)).fill(null)
-      );
+    var rowIndex = 0;
+    const derivedRow = boardRows[i].split("").flatMap((square) => {
+      if (isNaN(Number(square))) {
+        var p = {
+          hasMoved: false,
+          stringType: square.toLowerCase(),
+          numericType: parseInt(square),
+          color: square.toUpperCase() === square ? "w" : "b",
+          moveHistory: [],
+          legalMoves: [],
+          position: {
+            x: 7 - rowIndex,
+            y: 7 - i,
+            UCI: UCIBoard[7 - i][7 - rowIndex],
+          },
+        };
+        rowIndex += 1;
+        return p;
+      } else {
+        rowIndex += Number(square);
+        return new Array(Number(square)).fill(null);
+      }
+    });
     temp.push(derivedRow);
   }
-  console.log(temp);
+  //move to copy as created
+  for (let i = 0; i < temp.length; i++) {
+    for (let j = 0; j < temp.length; j++) {
+      NonUCIBoard[7 - i][j] = temp[7 - i][j];
+    }
+  }
+  console.timeEnd("l");
 }
+LoadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 //Internal
 function validateFEN(fen) {
   var errors = [];
@@ -125,7 +151,6 @@ function validateFEN(fen) {
       : { valid: false, errors };
   }
 }
-LoadFEN("rnbqkbnr/pppppppp/8/8/8/7P/PPPP1PPP/RNBQKBNR w KQkq - 0 1");
 function LoadUCI() {}
 function DisplayLegalMoves() {}
 function ShowASCII() {}
