@@ -1,23 +1,6 @@
-type BoardElement = [
-  Piece | null,
-  Piece | null,
-  Piece | null,
-  Piece | null,
-  Piece | null,
-  Piece | null,
-  Piece | null,
-  Piece | null
-];
-type Board = [
-  BoardElement,
-  BoardElement,
-  BoardElement,
-  BoardElement,
-  BoardElement,
-  BoardElement,
-  BoardElement,
-  BoardElement
-];
+type BoardElement = Piece[] | null[];
+
+type Board = BoardElement[];
 type PiecePositionRange = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type PieceType = "p" | "q" | "r" | "n" | "k" | "b";
 type MoveHistory = Array<Move>;
@@ -67,6 +50,23 @@ interface GameState {
   moveHistory: MoveHistory;
 }
 
+var whitePieces = {
+  king: {},
+  pawns: [],
+  queens: [],
+  rooks: [],
+  knights: [],
+  bishops: [],
+};
+var blackPieces = {
+  king: {},
+  pawns: [],
+  queens: [],
+  rooks: [],
+  knights: [],
+  bishops: [],
+};
+
 const UCIBoard = [
   ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
   ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
@@ -103,17 +103,20 @@ function Chess(): Board {
 function LoadFEN(fen: string): void {
   const validation = validateFEN(fen);
   if (validation.valid) {
-    parseFENIntoMemory(validation.boardLayout);
+    if (parseFENIntoMemory(validation.boardLayout)) {
+      // calculate moves
+    }
   }
 }
-function parseFENIntoMemory(fen: string): void {
+function parseFENIntoMemory(fen: string): boolean {
   const boardRows = fen.split("/");
-  var temp: any[] = [];
   for (let i = 0; i < 8; i++) {
     var rowIndex = 0;
     const derivedRow = boardRows[i].split("").flatMap((square) => {
+      // create object with pawn[], queen[], etc
       if (isNaN(Number(square))) {
-        var p: Piece = {
+        rowIndex += 1;
+        return {
           hasMoved: false,
           stringType: square.toLowerCase(),
           numericType: parseInt(square),
@@ -121,27 +124,48 @@ function parseFENIntoMemory(fen: string): void {
           moveHistory: [],
           legalMoves: [],
           position: {
-            x: 7 - rowIndex,
-            y: 7 - i,
-            UCI: UCIBoard[7 - i][7 - rowIndex],
+            x: rowIndex - 1,
+            y: i,
+            UCI: UCIBoard[i][rowIndex - 1],
           },
         };
-        rowIndex += 1;
-        return p;
       } else {
         rowIndex += Number(square);
         return new Array(Number(square)).fill(null);
       }
     });
-    temp.push(derivedRow);
-  }
-  //move to copy as created
-  for (let i = 0; i < temp.length; i++) {
-    for (let j = 0; j < temp.length; j++) {
-      NonUCIBoard[7 - i][j] = temp[7 - i][j];
+    if (derivedRow.length === 8) {
+      NonUCIBoard[i] = derivedRow;
+    } else {
+      //error, need to break here
+      console.error("problem with fen string");
+      return false;
     }
   }
+  return true;
 }
+function createPieceCalculationRoutine(turn: string): void {
+  const { pawns, queens, rooks, bishops, knights, king } = turn
+    ? whitePieces
+    : blackPieces;
+
+  calculateKingSpecialties();
+  calculatePawns(pawns);
+  calculateQueen(queens);
+  calculateRook(rooks);
+  calculateBishop(bishops);
+  calculateKnight(knights);
+  calculateKing(king);
+}
+
+// this function is meant for pinning pieces and determining if the king is in check
+function calculateKingSpecialties(): void {}
+function calculatePawns(pieces: object[]): void {}
+function calculateQueen(pieces: object[]): void {}
+function calculateRook(pieces: object[]): void {}
+function calculateBishop(pieces: object[]): void {}
+function calculateKnight(pieces: object[]): void {}
+function calculateKing(pieces: object): void {}
 //Internal
 function validateFEN(fen: string): Record<string, any> {
   var errors: FenError[] = [];
