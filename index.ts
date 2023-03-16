@@ -66,7 +66,7 @@ var blackPieces = {
   knights: [],
   bishops: [],
 };
-
+const files = "abcdefgh";
 const UCIBoard = [
   ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
   ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
@@ -159,11 +159,38 @@ function createPieceCalculationRoutine(turn: string): void {
 
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 function calculateKingSpecialties(): void {}
-function calculatePawns(pieces: { x: number; y: number }[]): void {
+function calculatePawns(
+  pieces: { x: PiecePositionRange; y: PiecePositionRange }[]
+): void {
   const pawnDirection =
     accessBoard(pieces[0].x, pieces[0].y)?.color === "w" ? -1 : 1;
   for (const pawn of pieces) {
     const { x, y } = pawn;
+    //basic first moves
+    if (accessBoard(x, y)?.moveHistory.length === 0) {
+      accessBoard(x, y)?.legalMoves.push(
+        {
+          x: x,
+          y: pawnDirection === -1 ? 2 : 5,
+          UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+        },
+        {
+          x: x,
+          y: pawnDirection === -1 ? 3 : 4,
+          UCI: `${files[x]}${pawnDirection === -1 ? 4 : 5}`,
+        }
+      );
+    } else {
+      if (accessBoard(x + 1, y + pawnDirection) !== null) {
+        accessBoard(x, y)?.legalMoves.push({
+          x: x + 1,
+          y: pawnDirection === -1 ? 2 : 5,
+          UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+        });
+      }
+      if (accessBoard(x - 1, y + pawnDirection) !== null) {
+      }
+    }
   }
 }
 function calculateQueen(pieces: object[]): void {}
@@ -171,8 +198,9 @@ function calculateRook(pieces: object[]): void {}
 function calculateBishop(pieces: object[]): void {}
 function calculateKnight(pieces: object[]): void {}
 function calculateKing(pieces: object): void {}
-function accessBoard(x: number, y: number): Piece | null {
-  return NonUCIBoard[x][y];
+function accessBoard(x: number, y: number): Piece | null | false {
+  if (x < 8 && y < 8) return NonUCIBoard[x][y];
+  return false;
 }
 //Internal
 function validateFEN(fen: string): Record<string, any> {
