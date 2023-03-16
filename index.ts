@@ -145,9 +145,8 @@ function parseFENIntoMemory(fen: string): boolean {
   return true;
 }
 function createPieceCalculationRoutine(turn: string): void {
-  const { pawns, queens, rooks, bishops, knights, king } = turn
-    ? whitePieces
-    : blackPieces;
+  const { pawns, queens, rooks, bishops, knights, king } =
+    turn === "w" ? whitePieces : blackPieces;
 
   calculateKingSpecialties();
   calculatePawns(pawns);
@@ -158,14 +157,23 @@ function createPieceCalculationRoutine(turn: string): void {
   calculateKing(king);
 }
 
-// this function is meant for pinning pieces and determining if the king is in check
+// this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 function calculateKingSpecialties(): void {}
-function calculatePawns(pieces: object[]): void {}
+function calculatePawns(pieces: { x: number; y: number }[]): void {
+  const pawnDirection =
+    accessBoard(pieces[0].x, pieces[0].y)?.color === "w" ? -1 : 1;
+  for (const pawn of pieces) {
+    const { x, y } = pawn;
+  }
+}
 function calculateQueen(pieces: object[]): void {}
 function calculateRook(pieces: object[]): void {}
 function calculateBishop(pieces: object[]): void {}
 function calculateKnight(pieces: object[]): void {}
 function calculateKing(pieces: object): void {}
+function accessBoard(x: number, y: number): Piece | null {
+  return NonUCIBoard[x][y];
+}
 //Internal
 function validateFEN(fen: string): Record<string, any> {
   var errors: FenError[] = [];
