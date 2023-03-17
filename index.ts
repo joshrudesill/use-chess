@@ -167,28 +167,36 @@ function calculatePawns(
   for (const pawn of pieces) {
     const { x, y } = pawn;
     //basic first moves
-    if (accessBoard(x, y)?.moveHistory.length === 0) {
-      accessBoard(x, y)?.legalMoves.push(
-        {
-          x: x,
-          y: pawnDirection === -1 ? 2 : 5,
-          UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
-        },
-        {
-          x: x,
-          y: pawnDirection === -1 ? 3 : 4,
-          UCI: `${files[x]}${pawnDirection === -1 ? 4 : 5}`,
+    const boardPiece = accessBoard(x, y);
+    if (boardPiece !== false && boardPiece !== null) {
+      if (boardPiece.moveHistory.length === 0) {
+        boardPiece.legalMoves.push(
+          {
+            x: x,
+            y: pawnDirection === -1 ? 2 : 5,
+            UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+          },
+          {
+            x: x,
+            y: pawnDirection === -1 ? 3 : 4,
+            UCI: `${files[x]}${pawnDirection === -1 ? 4 : 5}`,
+          }
+        );
+      } else {
+        const boardPiecePos = accessBoard(x + 1, y + pawnDirection);
+        if (
+          boardPiecePos !== false &&
+          boardPiecePos !== null &&
+          boardPiecePos.color !== boardPiece?.color
+        ) {
+          accessBoard(x, y)?.legalMoves.push({
+            x: x + 1,
+            y: pawnDirection === -1 ? 2 : 5,
+            UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+          });
         }
-      );
-    } else {
-      if (accessBoard(x + 1, y + pawnDirection) !== null) {
-        accessBoard(x, y)?.legalMoves.push({
-          x: x + 1,
-          y: pawnDirection === -1 ? 2 : 5,
-          UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
-        });
-      }
-      if (accessBoard(x - 1, y + pawnDirection) !== null) {
+        if (accessBoard(x - 1, y + pawnDirection) !== null) {
+        }
       }
     }
   }
@@ -202,6 +210,16 @@ function accessBoard(x: number, y: number): Piece | null | false {
   if (x < 8 && y < 8) return NonUCIBoard[x][y];
   return false;
 }
+function addLegalMoves(x: number, y: number, moves: Square[]): boolean {
+  if (x < 8 && y < 8) return false;
+  const preMoves = NonUCIBoard[x][y];
+  if (preMoves !== null) {
+    preMoves.legalMoves = preMoves.legalMoves.concat(moves);
+    return true;
+  }
+  return false;
+}
+
 //Internal
 function validateFEN(fen: string): Record<string, any> {
   var errors: FenError[] = [];
