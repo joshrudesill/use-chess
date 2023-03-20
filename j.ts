@@ -158,7 +158,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 0, y: 2, UCI: "a3" },
+        { x: 0, y: 3, UCI: "a4" },
+      ],
       position: { x: 0, y: 6, UCI: "a2" },
     },
     {
@@ -167,7 +170,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 1, y: 2, UCI: "b3" },
+        { x: 1, y: 3, UCI: "b4" },
+      ],
       position: { x: 1, y: 6, UCI: "b2" },
     },
     {
@@ -176,7 +182,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 2, y: 2, UCI: "c3" },
+        { x: 2, y: 3, UCI: "c4" },
+      ],
       position: { x: 2, y: 6, UCI: "c2" },
     },
     {
@@ -185,7 +194,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 3, y: 2, UCI: "d3" },
+        { x: 3, y: 3, UCI: "d4" },
+      ],
       position: { x: 3, y: 6, UCI: "d2" },
     },
     {
@@ -194,7 +206,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 4, y: 2, UCI: "e3" },
+        { x: 4, y: 3, UCI: "e4" },
+      ],
       position: { x: 4, y: 6, UCI: "e2" },
     },
     {
@@ -203,7 +218,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 5, y: 2, UCI: "f3" },
+        { x: 5, y: 3, UCI: "f4" },
+      ],
       position: { x: 5, y: 6, UCI: "f2" },
     },
     {
@@ -212,7 +230,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 6, y: 2, UCI: "g3" },
+        { x: 6, y: 3, UCI: "g4" },
+      ],
       position: { x: 6, y: 6, UCI: "g2" },
     },
     {
@@ -221,7 +242,10 @@
       numericType: null,
       color: "w",
       moveHistory: [],
-      legalMoves: [],
+      legalMoves: [
+        { x: 7, y: 2, UCI: "h3" },
+        { x: 7, y: 3, UCI: "h4" },
+      ],
       position: { x: 7, y: 6, UCI: "h2" },
     },
   ],

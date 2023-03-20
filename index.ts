@@ -6,8 +6,8 @@ type PieceType = "p" | "q" | "r" | "n" | "k" | "b";
 type MoveHistory = Array<Move>;
 type Color = "b" | "w";
 interface Square {
-  x: PiecePositionRange;
-  y: PiecePositionRange;
+  x: number;
+  y: number;
   UCI: string;
 }
 interface PiecePosition {
@@ -49,8 +49,15 @@ interface GameState {
   };
   moveHistory: MoveHistory;
 }
-
-var whitePieces = {
+interface PieceStorage {
+  king: object;
+  pawns: { x: number; y: number }[];
+  queens: object[];
+  rooks: object[];
+  knights: object[];
+  bishops: object[];
+}
+var whitePieces: PieceStorage = {
   king: {},
   pawns: [],
   queens: [],
@@ -116,6 +123,9 @@ function parseFENIntoMemory(fen: string): boolean {
       // create object with pawn[], queen[], etc
       if (isNaN(Number(square))) {
         rowIndex += 1;
+        if (square === "P") {
+          whitePieces.pawns.push({ x: rowIndex - 1, y: i });
+        }
         return {
           hasMoved: false,
           stringType: square.toLowerCase(),
@@ -149,21 +159,23 @@ function createPieceCalculationRoutine(turn: string): void {
     turn === "w" ? whitePieces : blackPieces;
 
   calculateKingSpecialties();
-  calculatePawns(pawns);
+  calculatePawns(pawns, turn);
+  /*
   calculateQueen(queens);
   calculateRook(rooks);
   calculateBishop(bishops);
   calculateKnight(knights);
   calculateKing(king);
+   */
 }
 
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 function calculateKingSpecialties(): void {}
 function calculatePawns(
-  pieces: { x: PiecePositionRange; y: PiecePositionRange }[]
+  pieces: { x: number; y: number }[],
+  turn: string
 ): void {
-  const pawnDirection =
-    accessBoard(pieces[0].x, pieces[0].y)?.color === "w" ? -1 : 1;
+  const pawnDirection = turn === "w" ? -1 : 1;
   for (const pawn of pieces) {
     const { x, y } = pawn;
     //basic first moves
@@ -189,13 +201,22 @@ function calculatePawns(
           boardPiecePos !== null &&
           boardPiecePos.color !== boardPiece?.color
         ) {
-          accessBoard(x, y)?.legalMoves.push({
-            x: x + 1,
-            y: pawnDirection === -1 ? 2 : 5,
-            UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
-          });
+          addLegalMoves(x, y, [
+            {
+              x: x + 1,
+              y: y + pawnDirection,
+              UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+            },
+          ]);
         }
         if (accessBoard(x - 1, y + pawnDirection) !== null) {
+          addLegalMoves(x, y, [
+            {
+              x: x - 1,
+              y: y + pawnDirection,
+              UCI: `${files[x]}${pawnDirection === -1 ? 3 : 6}`,
+            },
+          ]);
         }
       }
     }
@@ -207,7 +228,7 @@ function calculateBishop(pieces: object[]): void {}
 function calculateKnight(pieces: object[]): void {}
 function calculateKing(pieces: object): void {}
 function accessBoard(x: number, y: number): Piece | null | false {
-  if (x < 8 && y < 8) return NonUCIBoard[x][y];
+  if (x < 8 && y < 8) return NonUCIBoard[y][x];
   return false;
 }
 function addLegalMoves(x: number, y: number, moves: Square[]): boolean {
