@@ -74,6 +74,28 @@ var blackPieces = {
   bishops: [],
 };
 const files = "abcdefgh";
+const rayFiles = [
+  [0, 0, 0, 0, 4, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 0, 0, 0, 0],
+  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+  [4, 3, 2, 1, 0, 1, 2, 3, 4],
+  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 0, 0, 0, 0],
+  [0, 0, 0, 0, 4, 0, 0, 0, 0],
+];
+const rayDiagonals = [
+  [0, 0, 0, 0, 4, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 0, 0, 0, 0],
+  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+  [4, 3, 2, 1, 0, 1, 2, 3, 4],
+  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 0, 0, 0, 0],
+  [0, 0, 0, 0, 4, 0, 0, 0, 0],
+];
 const UCIBoard = [
   ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
   ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
@@ -126,6 +148,14 @@ function parseFENIntoMemory(fen: string): boolean {
         if (square === "P") {
           whitePieces.pawns.push({ x: rowIndex - 1, y: i });
         }
+        if (square === "K") {
+          whitePieces.king = {
+            x: rowIndex - 1,
+            y: i,
+            inCheck: false,
+            checkingPieceLocation: null,
+          };
+        }
         return {
           hasMoved: false,
           stringType: square.toLowerCase(),
@@ -170,7 +200,19 @@ function createPieceCalculationRoutine(turn: string): void {
 }
 
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
-function calculateKingSpecialties(): void {}
+function calculateKingSpecialties(): void {
+  //shoot rays for incheck
+  //shoot rays for pinning
+}
+function shootRays(
+  diagonals: boolean,
+  files: boolean,
+  px: number,
+  py: number
+): object[] {
+  //input piece location then find first hits and return array with piece hit locations
+  return [{}];
+}
 function calculatePawns(
   pieces: { x: number; y: number }[],
   turn: string
