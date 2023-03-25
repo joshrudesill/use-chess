@@ -203,7 +203,7 @@ function BoardCoords(x, y) {
   this.x = x;
   this.y = y;
 }
-BoardCoords.prototype.getRayrayDepth = function (rayDepth: number) {
+BoardCoords.prototype.getRayDepth = function (rayDepth: number) {
   //returns array with index in following order
   /*
     0 1 2
@@ -234,6 +234,60 @@ BoardCoords.prototype.getRayrayDepth = function (rayDepth: number) {
     { x: this.x + rayDepth, y: this.y + rayDepth }, //7
   ];
 };
+BoardCoords.prototype.getRayDepthDiag = function (rayDepth: number) {
+  //returns array with index in following order
+  /*
+    0 1 2
+    3 P 4
+    5 6 7
+
+    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+
+    o ---------x
+    |  0 1 2
+    |  3 P 4
+    |  5 6 7
+    y
+
+  */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x - rayDepth, y: this.y - rayDepth }, //0
+    { x: this.x + rayDepth, y: this.y - rayDepth }, //2
+    { x: this.x - rayDepth, y: this.y + rayDepth }, //5
+    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+  ];
+};
+BoardCoords.prototype.getRayDepthFile = function (rayDepth: number) {
+  //returns array with index in following order
+  /*
+    0 1 2
+    3 P 4
+    5 6 7
+
+    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+
+    o ---------x
+    |  0 1 2
+    |  3 P 4
+    |  5 6 7
+    y
+
+  */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x, y: this.y - rayDepth }, //1
+    { x: this.x - rayDepth, y: this.y }, //3
+    { x: this.x + rayDepth, y: this.y }, //4
+    { x: this.x, y: this.y + rayDepth }, //6
+  ];
+};
 const UPPER_LEFT = 0;
 const UPPER = 1;
 const UPPER_RIGHT = 2;
@@ -247,6 +301,8 @@ const LOWER_RIGHT = 7;
 function calculateKingSpecialties(): void {
   //shoot rays for incheck
   //shoot rays for pinning
+  //probably build special one for king
+  shootRays(true, true, 1, 1, false);
 }
 function shootRays(
   diagonals: boolean,
