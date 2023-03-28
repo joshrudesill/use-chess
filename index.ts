@@ -50,7 +50,12 @@ interface GameState {
   moveHistory: MoveHistory;
 }
 interface PieceStorage {
-  king: object;
+  king: {
+    x: number;
+    y: number;
+    inCheck: boolean;
+    checkingPieceLocation: object | null;
+  };
   pawns: { x: number; y: number }[];
   queens: object[];
   rooks: object[];
@@ -58,21 +63,119 @@ interface PieceStorage {
   bishops: object[];
 }
 var whitePieces: PieceStorage = {
-  king: {},
+  king: { x: 0, y: 0, inCheck: false, checkingPieceLocation: null },
   pawns: [],
   queens: [],
   rooks: [],
   knights: [],
   bishops: [],
 };
-var blackPieces = {
-  king: {},
+var blackPieces: PieceStorage = {
+  king: { x: 0, y: 0, inCheck: false, checkingPieceLocation: null },
   pawns: [],
   queens: [],
   rooks: [],
   knights: [],
   bishops: [],
 };
+function BoardCoords(x, y) {
+  this.x = x;
+  this.y = y;
+}
+BoardCoords.prototype.getRayDepth = function (rayDepth: number) {
+  //returns array with index in following order
+  /*
+    0 1 2
+    3 P 4
+    5 6 7
+
+    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+
+    o ---------x
+    |  0 1 2
+    |  3 P 4
+    |  5 6 7
+    y
+
+  */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x - rayDepth, y: this.y - rayDepth }, //0
+    { x: this.x, y: this.y - rayDepth }, //1
+    { x: this.x + rayDepth, y: this.y - rayDepth }, //2
+    { x: this.x - rayDepth, y: this.y }, //3
+    { x: this.x + rayDepth, y: this.y }, //4
+    { x: this.x - rayDepth, y: this.y + rayDepth }, //5
+    { x: this.x, y: this.y + rayDepth }, //6
+    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+  ];
+};
+BoardCoords.prototype.getRayDepthDiag = function (rayDepth: number) {
+  //returns array with index in following order
+  /*
+    0 1 2
+    3 P 4
+    5 6 7
+
+    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+
+    o ---------x
+    |  0 1 2
+    |  3 P 4
+    |  5 6 7
+    y
+
+  */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x - rayDepth, y: this.y - rayDepth }, //0
+    { x: this.x + rayDepth, y: this.y - rayDepth }, //2
+    { x: this.x - rayDepth, y: this.y + rayDepth }, //5
+    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+  ];
+};
+BoardCoords.prototype.getRayDepthFile = function (rayDepth: number) {
+  //returns array with index in following order
+  /*
+    0 1 2
+    3 P 4
+    5 6 7
+
+    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+
+    o ---------x
+    |  0 1 2
+    |  3 P 4
+    |  5 6 7
+    y
+
+  */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x, y: this.y - rayDepth }, //1
+    { x: this.x - rayDepth, y: this.y }, //3
+    { x: this.x + rayDepth, y: this.y }, //4
+    { x: this.x, y: this.y + rayDepth }, //6
+  ];
+};
+const UPPER_LEFT = 0;
+const UPPER = 1;
+const UPPER_RIGHT = 2;
+const LEFT = 3;
+const RIGHT = 4;
+const LOWER_LEFT = 5;
+const LOWER = 7;
+const LOWER_RIGHT = 7;
+
 const files = "abcdefgh";
 const rayFiles = [
   [0, 0, 0, 0, 4, 0, 0, 0, 0],
@@ -188,7 +291,7 @@ function createPieceCalculationRoutine(turn: string): void {
   const { pawns, queens, rooks, bishops, knights, king } =
     turn === "w" ? whitePieces : blackPieces;
 
-  calculateKingSpecialties();
+  calculateKingSpecialties(king.x, king.y);
   calculatePawns(pawns, turn);
   /*
   calculateQueen(queens);
@@ -199,120 +302,42 @@ function createPieceCalculationRoutine(turn: string): void {
    */
 }
 
-function BoardCoords(x, y) {
-  this.x = x;
-  this.y = y;
-}
-BoardCoords.prototype.getRayDepth = function (rayDepth: number) {
-  //returns array with index in following order
-  /*
-    0 1 2
-    3 P 4
-    5 6 7
-
-    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
-
-    o ---------x
-    |  0 1 2
-    |  3 P 4
-    |  5 6 7
-    y
-
-  */
-  if (rayDepth < 1) {
-    console.error("Ray depth must be greater than 0");
-    return;
-  }
-  return [
-    { x: this.x - rayDepth, y: this.y - rayDepth }, //0
-    { x: this.x, y: this.y - rayDepth }, //1
-    { x: this.x + rayDepth, y: this.y - rayDepth }, //2
-    { x: this.x - rayDepth, y: this.y }, //3
-    { x: this.x + rayDepth, y: this.y }, //4
-    { x: this.x - rayDepth, y: this.y + rayDepth }, //5
-    { x: this.x, y: this.y + rayDepth }, //6
-    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
-  ];
-};
-BoardCoords.prototype.getRayDepthDiag = function (rayDepth: number) {
-  //returns array with index in following order
-  /*
-    0 1 2
-    3 P 4
-    5 6 7
-
-    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
-
-    o ---------x
-    |  0 1 2
-    |  3 P 4
-    |  5 6 7
-    y
-
-  */
-  if (rayDepth < 1) {
-    console.error("Ray depth must be greater than 0");
-    return;
-  }
-  return [
-    { x: this.x - rayDepth, y: this.y - rayDepth }, //0
-    { x: this.x + rayDepth, y: this.y - rayDepth }, //2
-    { x: this.x - rayDepth, y: this.y + rayDepth }, //5
-    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
-  ];
-};
-BoardCoords.prototype.getRayDepthFile = function (rayDepth: number) {
-  //returns array with index in following order
-  /*
-    0 1 2
-    3 P 4
-    5 6 7
-
-    Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
-
-    o ---------x
-    |  0 1 2
-    |  3 P 4
-    |  5 6 7
-    y
-
-  */
-  if (rayDepth < 1) {
-    console.error("Ray depth must be greater than 0");
-    return;
-  }
-  return [
-    { x: this.x, y: this.y - rayDepth }, //1
-    { x: this.x - rayDepth, y: this.y }, //3
-    { x: this.x + rayDepth, y: this.y }, //4
-    { x: this.x, y: this.y + rayDepth }, //6
-  ];
-};
-const UPPER_LEFT = 0;
-const UPPER = 1;
-const UPPER_RIGHT = 2;
-const LEFT = 3;
-const RIGHT = 4;
-const LOWER_LEFT = 5;
-const LOWER = 7;
-const LOWER_RIGHT = 7;
-
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
-function calculateKingSpecialties(): void {
+function calculateKingSpecialties(x: number, y: number): void {
   //shoot rays for incheck
   //shoot rays for pinning
   //probably build special one for king
-  shootRays(true, true, 1, 1, false);
+  detectPieces(x, y);
+}
+function detectPieces(
+  px: number,
+  py: number,
+  singleDirection: number | null = null
+): object[] {
+  //input piece location then find first hits and return array with piece hit locations
+  const pieceLocation = new BoardCoords(px, py);
+  var foundPieces: object[] = [];
+  for (let i = 0; i < 8; i++) {
+    for (const p of pieceLocation.getRayDepth(i + 1)) {
+      const access = accessBoard(p.x, p.y);
+      if (access !== false && access !== null) {
+        foundPieces.push({ x: access.position.x, y: access.position.y });
+      }
+    }
+  }
+  return foundPieces;
 }
 function shootRays(
   diagonals: boolean,
   files: boolean,
   px: number,
-  py: number,
-  rSquares: boolean
+  py: number
 ): object[] {
   //input piece location then find first hits and return array with piece hit locations
-  for (let i = 0; i < 8; i++) {}
+  const pieceLocation = new BoardCoords(px, py);
+  for (let i = 0; i < 8; i++) {
+    pieceLocation.getRayDepth(i + 1);
+  }
   return [{}];
 }
 function calculatePawns(
