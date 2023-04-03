@@ -1,5 +1,5 @@
 var whitePieces = {
-  king: {},
+  king: { x: 0, y: 0, inCheck: false, checkingPieceLocation: null },
   pawns: [],
   queens: [],
   rooks: [],
@@ -7,36 +7,151 @@ var whitePieces = {
   bishops: [],
 };
 var blackPieces = {
-  king: {},
+  king: { x: 0, y: 0, inCheck: false, checkingPieceLocation: null },
   pawns: [],
   queens: [],
   rooks: [],
   knights: [],
   bishops: [],
 };
+function BoardCoords(x, y) {
+  this.x = x;
+  this.y = y;
+}
+BoardCoords.prototype.getRayDepth = function (rayDepth, ignore = []) {
+  //returns array with index in following order
+  /*
+      0 1 2
+      3 P 4
+      5 6 7
+  
+      Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+  
+      o ---------x
+      |  0 1 2
+      |  3 P 4
+      |  5 6 7
+      y
+  
+    */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  if (ignore.length === 0) {
+    return [
+      { x: this.x - rayDepth, y: this.y - rayDepth },
+      { x: this.x, y: this.y - rayDepth },
+      { x: this.x + rayDepth, y: this.y - rayDepth },
+      { x: this.x - rayDepth, y: this.y },
+      { x: this.x + rayDepth, y: this.y },
+      { x: this.x - rayDepth, y: this.y + rayDepth },
+      { x: this.x, y: this.y + rayDepth },
+      { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+    ];
+  }
+  return [
+    ignore.includes(0)
+      ? undefined
+      : { x: this.x - rayDepth, y: this.y - rayDepth },
+    ignore.includes(1) ? undefined : { x: this.x, y: this.y - rayDepth },
+    ignore.includes(2)
+      ? undefined
+      : { x: this.x + rayDepth, y: this.y - rayDepth },
+    ignore.includes(3) ? undefined : { x: this.x - rayDepth, y: this.y },
+    ignore.includes(4) ? undefined : { x: this.x + rayDepth, y: this.y },
+    ignore.includes(5)
+      ? undefined
+      : { x: this.x - rayDepth, y: this.y + rayDepth },
+    ignore.includes(6) ? undefined : { x: this.x, y: this.y + rayDepth },
+    ignore.includes(7)
+      ? undefined
+      : { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+  ];
+};
+BoardCoords.prototype.getRayDepthDiag = function (rayDepth) {
+  //returns array with index in following order
+  /*
+      0 1 2
+      3 P 4
+      5 6 7
+  
+      Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+  
+      o ---------x
+      |  0 1 2
+      |  3 P 4
+      |  5 6 7
+      y
+  
+    */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x - rayDepth, y: this.y - rayDepth },
+    { x: this.x + rayDepth, y: this.y - rayDepth },
+    { x: this.x - rayDepth, y: this.y + rayDepth },
+    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+  ];
+};
+BoardCoords.prototype.getSingleRayDepth = function (rayDepth, direction) {
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  if (direction === 0) return { x: this.x - rayDepth, y: this.y - rayDepth };
+  if (direction === 1) return { x: this.x, y: this.y - rayDepth };
+  if (direction === 2) return { x: this.x + rayDepth, y: this.y - rayDepth };
+  if (direction === 3) return { x: this.x - rayDepth, y: this.y };
+  if (direction === 4) return { x: this.x + rayDepth, y: this.y };
+  if (direction === 5) return { x: this.x - rayDepth, y: this.y + rayDepth };
+  if (direction === 6) return { x: this.x, y: this.y + rayDepth };
+  if (direction === 7) return { x: this.x + rayDepth, y: this.y + rayDepth };
+};
+BoardCoords.prototype.getRayDepthFile = function (rayDepth) {
+  //returns array with index in following order
+  /*
+      0 1 2
+      3 P 4
+      5 6 7
+  
+      Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
+  
+      o ---------x
+      |  0 1 2
+      |  3 P 4
+      |  5 6 7
+      y
+  
+    */
+  if (rayDepth < 1) {
+    console.error("Ray depth must be greater than 0");
+    return;
+  }
+  return [
+    { x: this.x, y: this.y - rayDepth },
+    { x: this.x - rayDepth, y: this.y },
+    { x: this.x + rayDepth, y: this.y },
+    { x: this.x, y: this.y + rayDepth }, //6
+  ];
+};
+const UPPER_LEFT = 0;
+const UPPER = 1;
+const UPPER_RIGHT = 2;
+const LEFT = 3;
+const RIGHT = 4;
+const LOWER_LEFT = 5;
+const LOWER = 7;
+const LOWER_RIGHT = 7;
+const PAWN = "p";
+const ROOK = "r";
+const QUEEN = "q";
+const KNIGHT = "n";
+const KING = "k";
+const BISHOP = "b";
 const files = "abcdefgh";
-const rayFiles = [
-  [0, 0, 0, 0, 4, 0, 0, 0, 0],
-  [0, 0, 0, 0, 3, 0, 0, 0, 0],
-  [0, 0, 0, 0, 2, 0, 0, 0, 0],
-  [0, 0, 0, 0, 1, 0, 0, 0, 0],
-  [4, 3, 2, 1, 0, 1, 2, 3, 4],
-  [0, 0, 0, 0, 1, 0, 0, 0, 0],
-  [0, 0, 0, 0, 2, 0, 0, 0, 0],
-  [0, 0, 0, 0, 3, 0, 0, 0, 0],
-  [0, 0, 0, 0, 4, 0, 0, 0, 0],
-];
-const rayDiagonals = [
-  [0, 0, 0, 0, 4, 0, 0, 0, 0],
-  [0, 0, 0, 0, 3, 0, 0, 0, 0],
-  [0, 0, 0, 0, 2, 0, 0, 0, 0],
-  [0, 0, 0, 0, 1, 0, 0, 0, 0],
-  [4, 3, 2, 1, 0, 1, 2, 3, 4],
-  [0, 0, 0, 0, 1, 0, 0, 0, 0],
-  [0, 0, 0, 0, 2, 0, 0, 0, 0],
-  [0, 0, 0, 0, 3, 0, 0, 0, 0],
-  [0, 0, 0, 0, 4, 0, 0, 0, 0],
-];
 const UCIBoard = [
   ["a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"],
   ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7"],
@@ -128,8 +243,9 @@ function parseFENIntoMemory(fen) {
 function createPieceCalculationRoutine(turn) {
   const { pawns, queens, rooks, bishops, knights, king } =
     turn === "w" ? whitePieces : blackPieces;
-  calculateKingSpecialties();
-  calculatePawns(pawns, turn);
+  //to return {incheck, checkLocation}
+  calculateKingSpecialties(king, turn);
+  //calculatePawns(pawns, turn);
   /*
     calculateQueen(queens);
     calculateRook(rooks);
@@ -138,59 +254,138 @@ function createPieceCalculationRoutine(turn) {
     calculateKing(king);
      */
 }
-function BoardCoords(x, y) {
-  this.x = x;
-  this.y = y;
-}
-BoardCoords.prototype.getRayrayDepth = function (rayDepth) {
-  //returns array with index in following order
-  /*
-      0 1 2
-      3 P 4
-      5 6 7
-  
-      Where y is inverted as compared to a normal graph, this is due to the nature of the 2d array
-  
-      o ---------x
-      |  0 1 2
-      |  3 P 4
-      |  5 6 7
-      y
-  
-    */
-  if (rayDepth < 1) {
-    console.error("Ray depth must be greater than 0");
-    return;
-  }
-  return [
-    { x: this.x - rayDepth, y: this.y - rayDepth },
-    { x: this.x, y: this.y - rayDepth },
-    { x: this.x + rayDepth, y: this.y - rayDepth },
-    { x: this.x - rayDepth, y: this.y },
-    { x: this.x + rayDepth, y: this.y },
-    { x: this.x - rayDepth, y: this.y + rayDepth },
-    { x: this.x, y: this.y + rayDepth },
-    { x: this.x + rayDepth, y: this.y + rayDepth }, //7
-  ];
-};
-const UPPER_LEFT = 0;
-const UPPER = 1;
-const UPPER_RIGHT = 2;
-const LEFT = 3;
-const RIGHT = 4;
-const LOWER_LEFT = 5;
-const LOWER = 7;
-const LOWER_RIGHT = 7;
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
-function calculateKingSpecialties() {
+function calculateKingSpecialties(king, turn) {
   //shoot rays for incheck
   //shoot rays for pinning
+  //probably build special one for king - done
+  //to return {incheck, checking location, pinnedpieces: [pindirection, location(x,y)] }
+  console.log(detectPieces(king, turn));
 }
-function shootRays(diagonals, files, px, py, rSquares) {
+function detectPieces(king, turn, singleDirection = null) {
   //input piece location then find first hits and return array with piece hit locations
-  for (let i = 0; i < 8; i++) {}
+  const pieceLocation = new BoardCoords(king.x, king.y);
+  var foundPieces = [];
+  var inCheck = false;
+  var checkingPiece = {};
+  var pinnedPieces = [];
+  var ignore = [];
+  for (let i = 0; i < 8; i++) {
+    const rd = pieceLocation.getRayDepth(i + 1, ignore);
+    for (let j = 0; j < rd.length; j++) {
+      if (rd[j] !== undefined) {
+        const access = accessBoard(rd[j].x, rd[j].y);
+        if (access === false) break;
+        if (access !== null) {
+          //if piece is enemy and direction matches - incheck, add to ignore
+          if (access.color !== turn) {
+            if (
+              j === UPPER_LEFT ||
+              j === UPPER_RIGHT ||
+              j === LOWER_LEFT ||
+              j === LOWER_RIGHT
+            ) {
+              if (access.stringType === BISHOP || access.stringType === QUEEN) {
+                // attacking king, king in check
+                ignore.push(j);
+                inCheck = true;
+                checkingPiece = { x: access.position.x, y: access.position.y };
+              }
+            } else if (
+              j === LOWER ||
+              j === UPPER ||
+              j === LEFT ||
+              j === RIGHT
+            ) {
+              if (access.stringType === ROOK || access.stringType === QUEEN) {
+                // attacking king, king in check
+                ignore.push(j);
+                inCheck = true;
+                checkingPiece = { x: access.position.x, y: access.position.y };
+              }
+            }
+          } else {
+            //if piece is friendly - check further in that direction for attacking piece - then pin or not
+            const friendlyPiece = new BoardCoords(
+              access.position.x,
+              access.position.y
+            );
+            for (let c = 0; c < 8; c++) {
+              //
+              const pieceAccess = accessBoard(
+                friendlyPiece.getSingleRayDepth(c + 1, j).x,
+                friendlyPiece.getSingleRayDepth(c + 1, j).y
+              );
+              if (pieceAccess === false) break;
+              if (pieceAccess === null) continue;
+              if (pieceAccess !== null) {
+                //
+                if (pieceAccess.color !== turn) {
+                  //enemy piece found, lets check its attacking direction
+                  if (
+                    j === UPPER_LEFT ||
+                    j === UPPER_RIGHT ||
+                    j === LOWER_LEFT ||
+                    j === LOWER_RIGHT
+                  ) {
+                    //
+                    if (
+                      pieceAccess.stringType === BISHOP ||
+                      pieceAccess.stringType === QUEEN
+                    ) {
+                      // attacking piece, piece is now pinned
+                      ignore.push(j);
+                      pinnedPieces.push({
+                        x: friendlyPiece.x,
+                        y: friendlyPiece.y,
+                        pinDirection: j,
+                      });
+                      break;
+                    }
+                  } else if (
+                    j === LOWER ||
+                    j === UPPER ||
+                    j === LEFT ||
+                    j === RIGHT
+                  ) {
+                    //
+                    if (
+                      pieceAccess.stringType === ROOK ||
+                      pieceAccess.stringType === QUEEN
+                    ) {
+                      // attacking piece, piece is now pinned
+                      ignore.push(j);
+                      pinnedPieces.push({
+                        x: friendlyPiece.x,
+                        y: friendlyPiece.y,
+                        pinDirection: j,
+                      });
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+          //else nothing
+        }
+      }
+    }
+  }
+  //to return {incheck, checking location, pinnedpieces: [pindirection, location(x,y)] }
+  return { inCheck, checkingPiece, pinnedPieces };
+}
+function shootRays(diagonals, files, px, py) {
+  //input piece location then find first hits and return array with piece hit locations
+  const pieceLocation = new BoardCoords(px, py);
+  for (let i = 0; i < 8; i++) {
+    pieceLocation.getRayDepth(i + 1);
+  }
   return [{}];
 }
+LoadFEN("8/3q4/8/8/3K4/8/8/8 w - - 0 1");
+createPieceCalculationRoutine("w");
 function calculatePawns(pieces, turn) {
   const pawnDirection = turn === "w" ? -1 : 1;
   for (const pawn of pieces) {
@@ -251,7 +446,7 @@ function calculateBishop(pieces) {}
 function calculateKnight(pieces) {}
 function calculateKing(pieces) {}
 function accessBoard(x, y) {
-  if (x < 8 && y < 8) return NonUCIBoard[y][x];
+  if (x < 8 && y < 8 && x >= 0 && y >= 0) return NonUCIBoard[y][x];
   return false;
 }
 function addLegalMoves(x, y, moves) {

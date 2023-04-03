@@ -110,6 +110,7 @@
       legalMoves: [],
       position: { x: 3, y: 1, UCI: "d7" },
     },
+
     {
       hasMoved: false,
       stringType: "p",

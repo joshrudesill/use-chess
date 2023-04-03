@@ -321,7 +321,7 @@ function createPieceCalculationRoutine(turn: string): void {
 
   //to return {incheck, checkLocation}
   calculateKingSpecialties(king, turn);
-  calculatePawns(pawns, turn);
+  //calculatePawns(pawns, turn);
   /*
   calculateQueen(queens);
   calculateRook(rooks);
@@ -343,20 +343,21 @@ function detectPieces(
   king: XY,
   turn: string,
   singleDirection: number | null = null
-): object[] {
+): object {
   //input piece location then find first hits and return array with piece hit locations
   const pieceLocation = new BoardCoords(king.x, king.y);
   var foundPieces: object[] = [];
   var inCheck: boolean = false;
-  var checkingPiece: XY;
-  var pinnedPieces = [];
+  var checkingPiece: XY | object = {};
+  var pinnedPieces: { x: number; y: number; pinDirection: number }[] = [];
   var ignore: number[] = [];
   for (let i = 0; i < 8; i++) {
     const rd = pieceLocation.getRayDepth(i + 1, ignore);
     for (let j: number = 0; j < rd.length; j++) {
       if (rd[j] !== undefined) {
         const access = accessBoard(rd[j].x, rd[j].y);
-        if (access !== false && access !== null) {
+        if (access === false) break;
+        if (access !== null) {
           //if piece is enemy and direction matches - incheck, add to ignore
           if (access.color !== turn) {
             if (
@@ -386,6 +387,67 @@ function detectPieces(
             }
           } else {
             //if piece is friendly - check further in that direction for attacking piece - then pin or not
+            const friendlyPiece = new BoardCoords(
+              access.position.x,
+              access.position.y
+            );
+            for (let c: number = 0; c < 8; c++) {
+              //
+              const pieceAccess = accessBoard(
+                friendlyPiece.getSingleRayDepth(c + 1, j).x,
+                friendlyPiece.getSingleRayDepth(c + 1, j).y
+              );
+              if (pieceAccess === false) break;
+              if (pieceAccess === null) continue;
+              if (pieceAccess !== null) {
+                //
+                if (pieceAccess.color !== turn) {
+                  //enemy piece found, lets check its attacking direction
+                  if (
+                    j === UPPER_LEFT ||
+                    j === UPPER_RIGHT ||
+                    j === LOWER_LEFT ||
+                    j === LOWER_RIGHT
+                  ) {
+                    //
+                    if (
+                      pieceAccess.stringType === BISHOP ||
+                      pieceAccess.stringType === QUEEN
+                    ) {
+                      // attacking piece, piece is now pinned
+                      ignore.push(j);
+                      pinnedPieces.push({
+                        x: friendlyPiece.x,
+                        y: friendlyPiece.y,
+                        pinDirection: j,
+                      });
+                      break;
+                    }
+                  } else if (
+                    j === LOWER ||
+                    j === UPPER ||
+                    j === LEFT ||
+                    j === RIGHT
+                  ) {
+                    //
+                    if (
+                      pieceAccess.stringType === ROOK ||
+                      pieceAccess.stringType === QUEEN
+                    ) {
+                      // attacking piece, piece is now pinned
+                      ignore.push(j);
+                      pinnedPieces.push({
+                        x: friendlyPiece.x,
+                        y: friendlyPiece.y,
+                        pinDirection: j,
+                      });
+                      break;
+                    }
+                  }
+                }
+                break;
+              }
+            }
           }
 
           //else nothing
@@ -393,7 +455,8 @@ function detectPieces(
       }
     }
   }
-  return foundPieces;
+  //to return {incheck, checking location, pinnedpieces: [pindirection, location(x,y)] }
+  return { inCheck, checkingPiece, pinnedPieces };
 }
 function shootRays(
   diagonals: boolean,
@@ -466,7 +529,7 @@ function calculateBishop(pieces: object[]): void {}
 function calculateKnight(pieces: object[]): void {}
 function calculateKing(pieces: object): void {}
 function accessBoard(x: number, y: number): Piece | null | false {
-  if (x < 8 && y < 8) return NonUCIBoard[y][x];
+  if (x < 8 && y < 8 && x >= 0 && y >= 0) return NonUCIBoard[y][x];
   return false;
 }
 function addLegalMoves(x: number, y: number, moves: Square[]): boolean {
