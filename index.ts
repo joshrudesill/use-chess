@@ -337,13 +337,9 @@ function calculateKingSpecialties(king: XY, turn: string): void {
   //shoot rays for pinning
   //probably build special one for king - done
   //to return {incheck, checking location, pinnedpieces: [pindirection, location(x,y)] }
-  detectPieces(king, turn);
+  const kingAttacks = detectAttacks(king, turn);
 }
-function detectPieces(
-  king: XY,
-  turn: string,
-  singleDirection: number | null = null
-): object {
+function detectAttacks(king: XY, turn: string): object {
   //input piece location then find first hits and return array with piece hit locations
   const pieceLocation = new BoardCoords(king.x, king.y);
   var foundPieces: object[] = [];
