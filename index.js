@@ -69,7 +69,7 @@ BoardCoords.prototype.getRayDepth = function (rayDepth, ignore = []) {
             : { x: this.x + rayDepth, y: this.y + rayDepth }, //7
     ];
 };
-BoardCoords.prototype.getRayDepthDiag = function (rayDepth) {
+BoardCoords.prototype.getRayDepthDiag = function (rayDepth, ignore = []) {
     //returns array with index in following order
     /*
       0 1 2
@@ -90,10 +90,18 @@ BoardCoords.prototype.getRayDepthDiag = function (rayDepth) {
         return;
     }
     return [
-        { x: this.x - rayDepth, y: this.y - rayDepth },
-        { x: this.x + rayDepth, y: this.y - rayDepth },
-        { x: this.x - rayDepth, y: this.y + rayDepth },
-        { x: this.x + rayDepth, y: this.y + rayDepth }, //7
+        ignore.includes(0)
+            ? { x: this.x - rayDepth, y: this.y - rayDepth }
+            : undefined,
+        ignore.includes(2)
+            ? { x: this.x + rayDepth, y: this.y - rayDepth }
+            : undefined,
+        ignore.includes(5)
+            ? { x: this.x - rayDepth, y: this.y + rayDepth }
+            : undefined,
+        ignore.includes(7)
+            ? { x: this.x + rayDepth, y: this.y + rayDepth }
+            : undefined, //7
     ];
 };
 BoardCoords.prototype.getSingleRayDepth = function (rayDepth, direction) {
@@ -118,7 +126,7 @@ BoardCoords.prototype.getSingleRayDepth = function (rayDepth, direction) {
     if (direction === 7)
         return { x: this.x + rayDepth, y: this.y + rayDepth };
 };
-BoardCoords.prototype.getRayDepthFile = function (rayDepth) {
+BoardCoords.prototype.getRayDepthFile = function (rayDepth, ignore = []) {
     //returns array with index in following order
     /*
       0 1 2
@@ -139,10 +147,10 @@ BoardCoords.prototype.getRayDepthFile = function (rayDepth) {
         return;
     }
     return [
-        { x: this.x, y: this.y - rayDepth },
-        { x: this.x - rayDepth, y: this.y },
-        { x: this.x + rayDepth, y: this.y },
-        { x: this.x, y: this.y + rayDepth }, //6
+        ignore.includes(1) ? { x: this.x, y: this.y - rayDepth } : undefined,
+        ignore.includes(3) ? { x: this.x - rayDepth, y: this.y } : undefined,
+        ignore.includes(4) ? { x: this.x + rayDepth, y: this.y } : undefined,
+        ignore.includes(6) ? { x: this.x, y: this.y + rayDepth } : undefined, //6
     ];
 };
 const UPPER_LEFT = 0;
@@ -253,7 +261,19 @@ function parseFENIntoMemory(fen) {
 function createPieceCalculationRoutine(turn) {
     const { pawns, queens, rooks, bishops, knights, king } = turn === "w" ? whitePieces : blackPieces;
     //to return {incheck, checkLocation}
-    calculateKingSpecialties(king, turn);
+    const { inCheck, checkingPiece, pinnedPieces } = detectAttacks(king, turn);
+    // if incheck we need to hijack the piece calc routine
+    if (inCheck) {
+        //do special calc
+    }
+    else {
+        calculatePawns(pawns, turn);
+        calculateQueen(queens);
+        calculateRook(rooks);
+        calculateBishop(bishops);
+        calculateKnight(knights);
+        calculateKing(king);
+    }
     //calculatePawns(pawns, turn);
     /*
     calculateQueen(queens);
@@ -263,15 +283,17 @@ function createPieceCalculationRoutine(turn) {
     calculateKing(king);
      */
 }
-// this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 function calculateKingSpecialties(king, turn) {
     //shoot rays for incheck
     //shoot rays for pinning
     //probably build special one for king - done
     //to return {incheck, checking location, pinnedpieces: [pindirection, location(x,y)] }
-    detectPieces(king, turn);
+    // const { inCheck, checkingPiece, pinnedPieces } = detectAttacks(king, turn);
+    // if incheck we need to hijack the piece calc routine
 }
-function detectPieces(king, turn, singleDirection = null) {
+// this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
+//TODO - check for knights attacking king, that way we can avoid calculating both piece colors
+function detectAttacks(king, turn) {
     //input piece location then find first hits and return array with piece hit locations
     const pieceLocation = new BoardCoords(king.x, king.y);
     var foundPieces = [];
@@ -426,8 +448,63 @@ function calculatePawns(pieces, turn) {
     }
 }
 //take xy and return moves, since this logic is reused anyway
-function calculateDiagonals(x, y) { }
-function calculateFiles(x, y) { }
+function calculateDiagonals(x, y, turn) {
+    const pieceLocation = new BoardCoords(x, y);
+    const directions = [0, 2, 5, 7];
+    let legalMoves = [];
+    let ignore = [];
+    for (let i = 0; i < 8; i++) {
+        for (const [j, { x, y }] of pieceLocation
+            .getRayDepthDiag(i + 1, ignore)
+            .entries()) {
+            const square = accessBoard(x, y);
+            if (square !== false) {
+                if (square === null) {
+                    legalMoves.push({ x, y });
+                }
+                else {
+                    if (square.color !== turn) {
+                        legalMoves.push({ x, y });
+                        ignore.push(directions[j]);
+                    }
+                    else {
+                        ignore.push(directions[j]);
+                    }
+                }
+            }
+        }
+    }
+    return legalMoves;
+}
+function calculateFiles(x, y, turn) {
+    const pieceLocation = new BoardCoords(x, y);
+    const directions = [1, 3, 4, 6];
+    let legalMoves = [];
+    let ignore = [];
+    for (let i = 0; i < 8; i++) {
+        for (const [j, { x, y }] of pieceLocation
+            .getRayDepthFile(i + 1, ignore)
+            .entries()) {
+            const square = accessBoard(x, y);
+            if (square !== false) {
+                if (square === null) {
+                    legalMoves.push({ x, y });
+                }
+                else {
+                    if (square.color !== turn) {
+                        legalMoves.push({ x, y });
+                        ignore.push(directions[j]);
+                    }
+                    else {
+                        ignore.push(directions[j]);
+                    }
+                }
+            }
+        }
+    }
+    return legalMoves;
+}
+// add the diag and file functions from above into calc routines below
 function calculateQueen(pieces) { }
 function calculateRook(pieces) { }
 function calculateBishop(pieces) { }
