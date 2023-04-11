@@ -60,10 +60,10 @@ interface PieceStorage {
     checkingPieceLocation: object | null;
   };
   pawns: { x: number; y: number }[];
-  queens: object[];
-  rooks: object[];
-  knights: object[];
-  bishops: object[];
+  queens: { x: number; y: number }[];
+  rooks: { x: number; y: number }[];
+  knights: { x: number; y: number }[];
+  bishops: { x: number; y: number }[];
 }
 var whitePieces: PieceStorage = {
   king: { x: 0, y: 0, inCheck: false, checkingPieceLocation: null },
@@ -85,6 +85,19 @@ function BoardCoords(x, y) {
   this.x = x;
   this.y = y;
 }
+BoardCoords.prototype.getKnightPositions = function () {
+  //returns all knight possible positions
+  return [
+    { x: this.x + 2, y: this.y + 1 },
+    { x: this.x + 2, y: this.y - 1 },
+    { x: this.x - 2, y: this.y + 1 },
+    { x: this.x - 2, y: this.y - 1 },
+    { x: this.x + 1, y: this.y + 2 },
+    { x: this.x + 1, y: this.y - 2 },
+    { x: this.x - 1, y: this.y + 2 },
+    { x: this.x - 1, y: this.y - 2 },
+  ];
+};
 BoardCoords.prototype.getRayDepth = function (
   rayDepth: number,
   ignore: number[] = []
@@ -341,10 +354,10 @@ function createPieceCalculationRoutine(turn: string): void {
     //do special calc
   } else {
     calculatePawns(pawns, turn);
-    calculateQueen(queens);
-    calculateRook(rooks);
-    calculateBishop(bishops);
-    calculateKnight(knights);
+    calculateQueen(queens, turn);
+    calculateRook(rooks, turn);
+    calculateBishop(bishops, turn);
+    calculateKnight(knights, turn);
     calculateKing(king);
   }
   //calculatePawns(pawns, turn);
@@ -367,13 +380,13 @@ function calculateKingSpecialties(king: XY, turn: string): void {
 }
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 //TODO - check for knights attacking king, that way we can avoid calculating both piece colors
+//note: this will need to be ran for all possible king moves in the future
 function detectAttacks(
   king: XY,
   turn: string
 ): { inCheck; checkingPiece; pinnedPieces } {
   //input piece location then find first hits and return array with piece hit locations
   const pieceLocation = new BoardCoords(king.x, king.y);
-  var foundPieces: object[] = [];
   var inCheck: boolean = false;
   var checkingPiece: XY | object = {};
   var pinnedPieces: { x: number; y: number; pinDirection: number }[] = [];
@@ -600,11 +613,77 @@ function calculateFiles(x: number, y: number, turn: string): XY[] {
   return legalMoves;
 }
 // add the diag and file functions from above into calc routines below
-function calculateQueen(pieces: object[]): void {}
-function calculateRook(pieces: object[]): void {}
-function calculateBishop(pieces: object[]): void {}
-function calculateKnight(pieces: object[]): void {}
-function calculateKing(pieces: object): void {}
+function calculateQueen(pieces: XY[], turn: string): void {
+  for (const piece of pieces) {
+    const moves = calculateDiagonals(piece.x, piece.y, turn).concat(
+      calculateFiles(piece.x, piece.y, turn)
+    );
+    addLegalMoves(
+      piece.x,
+      piece.y,
+      moves.map((move) => {
+        return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+      })
+    );
+  }
+}
+function calculateRook(pieces: XY[], turn: string): void {
+  for (const piece of pieces) {
+    addLegalMoves(
+      piece.x,
+      piece.y,
+      calculateFiles(piece.x, piece.y, turn).map((move) => {
+        return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+      })
+    );
+  }
+}
+function calculateBishop(pieces: XY[], turn: string): void {
+  for (const piece of pieces) {
+    addLegalMoves(
+      piece.x,
+      piece.y,
+      calculateDiagonals(piece.x, piece.y, turn).map((move) => {
+        return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+      })
+    );
+  }
+}
+
+function calculateKnight(pieces: XY[], turn: string): void {
+  for (const piece of pieces) {
+    const moves = new BoardCoords(piece.x, piece.y).getKnightMoves();
+    addLegalMoves(
+      piece.x,
+      piece.y,
+      moves.map((move) => {
+        const m = accessBoard(move.x, move.y);
+        if (m !== false) {
+          if (m === null) {
+            return {
+              x: move.x,
+              y: move.y,
+              UCI: `${files[move.x]}${move.y + 1}`,
+            };
+          } else {
+            if (m.color !== turn) {
+              return {
+                x: move.x,
+                y: move.y,
+                UCI: `${files[move.x]}${move.y + 1}`,
+              };
+            }
+          }
+        }
+      })
+    );
+  }
+}
+function calculateKing(piece: XY): void {
+  //for basic moves, get ray depth 1 on king position
+  //then, we need to run detectAttacks on each of these square to see if its under attack, add moves to king.
+  //then chekc for castling
+}
 function accessBoard(x: number, y: number): Piece | null | false {
   if (x < 8 && y < 8 && x >= 0 && y >= 0) return NonUCIBoard[y][x];
   return false;

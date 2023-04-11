@@ -18,6 +18,19 @@ function BoardCoords(x, y) {
     this.x = x;
     this.y = y;
 }
+BoardCoords.prototype.getKnightPositions = function () {
+    //returns all knight possible positions
+    return [
+        { x: this.x + 2, y: this.y + 1 },
+        { x: this.x + 2, y: this.y - 1 },
+        { x: this.x - 2, y: this.y + 1 },
+        { x: this.x - 2, y: this.y - 1 },
+        { x: this.x + 1, y: this.y + 2 },
+        { x: this.x + 1, y: this.y - 2 },
+        { x: this.x - 1, y: this.y + 2 },
+        { x: this.x - 1, y: this.y - 2 },
+    ];
+};
 BoardCoords.prototype.getRayDepth = function (rayDepth, ignore = []) {
     //returns array with index in following order
     /*
@@ -268,10 +281,10 @@ function createPieceCalculationRoutine(turn) {
     }
     else {
         calculatePawns(pawns, turn);
-        calculateQueen(queens);
-        calculateRook(rooks);
-        calculateBishop(bishops);
-        calculateKnight(knights);
+        calculateQueen(queens, turn);
+        calculateRook(rooks, turn);
+        calculateBishop(bishops, turn);
+        calculateKnight(knights, turn);
         calculateKing(king);
     }
     //calculatePawns(pawns, turn);
@@ -293,10 +306,10 @@ function calculateKingSpecialties(king, turn) {
 }
 // this function is meant for pinning pieces and determining if the king is in check, if the king is in check need to do special calc for finding moves that block the check, king moves need to follow.
 //TODO - check for knights attacking king, that way we can avoid calculating both piece colors
+//note: this will need to be ran for all possible king moves in the future
 function detectAttacks(king, turn) {
     //input piece location then find first hits and return array with piece hit locations
     const pieceLocation = new BoardCoords(king.x, king.y);
-    var foundPieces = [];
     var inCheck = false;
     var checkingPiece = {};
     var pinnedPieces = [];
@@ -505,11 +518,59 @@ function calculateFiles(x, y, turn) {
     return legalMoves;
 }
 // add the diag and file functions from above into calc routines below
-function calculateQueen(pieces) { }
-function calculateRook(pieces) { }
-function calculateBishop(pieces) { }
-function calculateKnight(pieces) { }
-function calculateKing(pieces) { }
+function calculateQueen(pieces, turn) {
+    for (const piece of pieces) {
+        const moves = calculateDiagonals(piece.x, piece.y, turn).concat(calculateFiles(piece.x, piece.y, turn));
+        addLegalMoves(piece.x, piece.y, moves.map((move) => {
+            return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+        }));
+    }
+}
+function calculateRook(pieces, turn) {
+    for (const piece of pieces) {
+        addLegalMoves(piece.x, piece.y, calculateFiles(piece.x, piece.y, turn).map((move) => {
+            return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+        }));
+    }
+}
+function calculateBishop(pieces, turn) {
+    for (const piece of pieces) {
+        addLegalMoves(piece.x, piece.y, calculateDiagonals(piece.x, piece.y, turn).map((move) => {
+            return { x: move.x, y: move.y, UCI: `${files[move.x]}${move.y + 1}` };
+        }));
+    }
+}
+function calculateKnight(pieces, turn) {
+    for (const piece of pieces) {
+        const moves = new BoardCoords(piece.x, piece.y).getKnightMoves();
+        addLegalMoves(piece.x, piece.y, moves.map((move) => {
+            const m = accessBoard(move.x, move.y);
+            if (m !== false) {
+                if (m === null) {
+                    return {
+                        x: move.x,
+                        y: move.y,
+                        UCI: `${files[move.x]}${move.y + 1}`,
+                    };
+                }
+                else {
+                    if (m.color !== turn) {
+                        return {
+                            x: move.x,
+                            y: move.y,
+                            UCI: `${files[move.x]}${move.y + 1}`,
+                        };
+                    }
+                }
+            }
+        }));
+    }
+}
+function calculateKing(piece) {
+    //for basic moves, get ray depth 1 on king position
+    //then, we need to run detectAttacks on each of these square to see if its under attack, add moves to king.
+    //then chekc for castling
+}
 function accessBoard(x, y) {
     if (x < 8 && y < 8 && x >= 0 && y >= 0)
         return NonUCIBoard[y][x];
