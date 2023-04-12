@@ -178,17 +178,17 @@ BoardCoords.prototype.getRayDepthDiag = function (
 
   return [
     ignore.includes(0)
-      ? { x: this.x - rayDepth, y: this.y - rayDepth }
-      : undefined, //0
+      ? undefined
+      : { x: this.x - rayDepth, y: this.y - rayDepth }, //0
     ignore.includes(2)
-      ? { x: this.x + rayDepth, y: this.y - rayDepth }
-      : undefined, //2
+      ? undefined
+      : { x: this.x + rayDepth, y: this.y - rayDepth }, //2
     ignore.includes(5)
-      ? { x: this.x - rayDepth, y: this.y + rayDepth }
-      : undefined, //5
+      ? undefined
+      : { x: this.x - rayDepth, y: this.y + rayDepth }, //5
     ignore.includes(7)
-      ? { x: this.x + rayDepth, y: this.y + rayDepth }
-      : undefined, //7
+      ? undefined
+      : { x: this.x + rayDepth, y: this.y + rayDepth }, //7
   ];
 };
 BoardCoords.prototype.getSingleRayDepth = function (
@@ -306,15 +306,40 @@ function parseFENIntoMemory(fen: string): boolean {
         rowIndex += 1;
         if (square === "P") {
           whitePieces.pawns.push({ x: rowIndex - 1, y: i });
-        }
-        if (square === "K") {
+        } else if (square === "R") {
+          whitePieces.rooks.push({ x: rowIndex - 1, y: i });
+        } else if (square === "N") {
+          whitePieces.knights.push({ x: rowIndex - 1, y: i });
+        } else if (square === "B") {
+          whitePieces.bishops.push({ x: rowIndex - 1, y: i });
+        } else if (square === "Q") {
+          whitePieces.queens.push({ x: rowIndex - 1, y: i });
+        } else if (square === "K") {
           whitePieces.king = {
             x: rowIndex - 1,
             y: i,
             inCheck: false,
             checkingPieceLocation: null,
           };
+        } else if (square === "p") {
+          blackPieces.pawns.push({ x: rowIndex - 1, y: i });
+        } else if (square === "r") {
+          blackPieces.rooks.push({ x: rowIndex - 1, y: i });
+        } else if (square === "n") {
+          blackPieces.knights.push({ x: rowIndex - 1, y: i });
+        } else if (square === "b") {
+          blackPieces.bishops.push({ x: rowIndex - 1, y: i });
+        } else if (square === "q") {
+          blackPieces.queens.push({ x: rowIndex - 1, y: i });
+        } else if (square === "k") {
+          blackPieces.king = {
+            x: rowIndex - 1,
+            y: i,
+            inCheck: false,
+            checkingPieceLocation: null,
+          };
         }
+
         return {
           hasMoved: false,
           stringType: square.toLowerCase(),
@@ -566,19 +591,21 @@ function calculateDiagonals(x: number, y: number, turn: string): XY[] {
   let legalMoves: XY[] = [];
   let ignore: number[] = [];
   for (let i = 0; i < 8; i++) {
-    for (const [j, { x, y }] of pieceLocation
-      .getRayDepthDiag(i + 1, ignore)
-      .entries()) {
-      const square = accessBoard(x, y);
-      if (square !== false) {
-        if (square === null) {
-          legalMoves.push({ x, y });
-        } else {
-          if (square.color !== turn) {
+    const diags = pieceLocation.getRayDepthDiag(i + 1, ignore);
+    for (let j = 0; j < diags.length; j++) {
+      if (diags[j] !== undefined) {
+        const { x, y } = diags[j];
+        const square = accessBoard(x, y);
+        if (square !== false) {
+          if (square === null) {
             legalMoves.push({ x, y });
-            ignore.push(directions[j]);
           } else {
-            ignore.push(directions[j]);
+            if (square.color !== turn) {
+              legalMoves.push({ x, y });
+              ignore.push(directions[j]);
+            } else {
+              ignore.push(directions[j]);
+            }
           }
         }
       }
@@ -588,23 +615,25 @@ function calculateDiagonals(x: number, y: number, turn: string): XY[] {
 }
 function calculateFiles(x: number, y: number, turn: string): XY[] {
   const pieceLocation = new BoardCoords(x, y);
-  const directions: number[] = [1, 3, 4, 6];
+  const directions: number[] = [0, 2, 5, 7];
   let legalMoves: XY[] = [];
   let ignore: number[] = [];
   for (let i = 0; i < 8; i++) {
-    for (const [j, { x, y }] of pieceLocation
-      .getRayDepthFile(i + 1, ignore)
-      .entries()) {
-      const square = accessBoard(x, y);
-      if (square !== false) {
-        if (square === null) {
-          legalMoves.push({ x, y });
-        } else {
-          if (square.color !== turn) {
+    const files = pieceLocation.getRayDepthFile(i + 1, ignore);
+    for (let j = 0; j < files.length; j++) {
+      if (files[j] !== undefined) {
+        const { x, y } = files[j];
+        const square = accessBoard(x, y);
+        if (square !== false) {
+          if (square === null) {
             legalMoves.push({ x, y });
-            ignore.push(directions[j]);
           } else {
-            ignore.push(directions[j]);
+            if (square.color !== turn) {
+              legalMoves.push({ x, y });
+              ignore.push(directions[j]);
+            } else {
+              ignore.push(directions[j]);
+            }
           }
         }
       }
@@ -652,31 +681,29 @@ function calculateBishop(pieces: XY[], turn: string): void {
 
 function calculateKnight(pieces: XY[], turn: string): void {
   for (const piece of pieces) {
-    const moves = new BoardCoords(piece.x, piece.y).getKnightMoves();
-    addLegalMoves(
-      piece.x,
-      piece.y,
-      moves.map((move) => {
-        const m = accessBoard(move.x, move.y);
-        if (m !== false) {
-          if (m === null) {
-            return {
-              x: move.x,
-              y: move.y,
-              UCI: `${files[move.x]}${move.y + 1}`,
-            };
-          } else {
-            if (m.color !== turn) {
-              return {
-                x: move.x,
-                y: move.y,
-                UCI: `${files[move.x]}${move.y + 1}`,
-              };
-            }
+    const moves = new BoardCoords(piece.x, piece.y).getKnightPositions();
+    var legalMoves: any[] = [];
+    for (let i = 0; i < moves.length; i++) {
+      const m = accessBoard(moves[i].x, moves[i].y);
+      if (m !== false) {
+        if (m === null) {
+          legalMoves.push({
+            x: moves[i].x,
+            y: moves[i].y,
+            UCI: `${files[moves[i].x]}${moves[i].y + 1}`,
+          });
+        } else {
+          if (m.color !== turn) {
+            legalMoves.push({
+              x: moves[i].x,
+              y: moves[i].y,
+              UCI: `${files[moves[i].x]}${moves[i].y + 1}`,
+            });
           }
         }
-      })
-    );
+      }
+    }
+    addLegalMoves(piece.x, piece.y, legalMoves);
   }
 }
 function calculateKing(piece: XY): void {
@@ -690,9 +717,9 @@ function accessBoard(x: number, y: number): Piece | null | false {
 }
 function addLegalMoves(x: number, y: number, moves: Square[]): boolean {
   if (x < 8 && y < 8) return false;
-  const preMoves = NonUCIBoard[x][y];
-  if (preMoves !== null) {
-    preMoves.legalMoves = preMoves.legalMoves.concat(moves);
+
+  if (NonUCIBoard[y][x] !== null) {
+    NonUCIBoard[y][x]!.legalMoves = moves;
     return true;
   }
   return false;
